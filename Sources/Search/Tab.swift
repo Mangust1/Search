@@ -1271,6 +1271,9 @@ final class Tab: ObservableObject, Identifiable {
         if let style = SiteStyles.shared.css(on: SiteStyles.host(of: url ?? pageAddress)) {
             add(SiteStyles.script(style), .atDocumentStart, mainFrameOnly: true, in: Web.world)
         }
+        // Userscripts (fork): yours, for the space this tab is in (see
+        // UserScripts.swift). Each leaves at once on a page it isn't for.
+        scripts += UserScripts.scripts(space: (delegate as? Browser)?.spaceName(holding: self))
         // A woken page's sessionStorage, back before its scripts (KeptSession).
         if let kept = KeptSession.script(for: self) {
             add(kept, .atDocumentStart, mainFrameOnly: true, in: Web.world)
