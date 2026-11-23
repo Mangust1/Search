@@ -1,7 +1,8 @@
 import AppKit
+import UniformTypeIdentifiers
 
 /// Download rules (fork): open a download instead of keeping it, and
-/// remember which, per site and kind of file. `downloads.json` in the data
+/// remember which, per site and kind of file. `download-rules.json` in the data
 /// folder (see DOWNLOADS.md):
 ///
 ///     { "ci.example.com": { "txt": { "do": "open", "with": "Some Viewer" },
@@ -14,10 +15,12 @@ import AppKit
 enum DownloadRules {
     enum Act: String { case open, save, cancel }
 
-    static var url: URL { Store.file("downloads.json") }
+    static var url: URL { Store.file("download-rules.json") }
 
     /// Files to open when they are down, and the app for each, if named.
     private static var opening: [URL: String?] = [:]
+    /// The app picked in the question just answered, for `place`.
+    private static var picked: String?
 
     private static func read() -> [String: Any] {
         (try? Data(contentsOf: url)).flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any] ?? [:]
@@ -47,13 +50,29 @@ enum DownloadRules {
         alert.addButton(withTitle: "Cancel")
         alert.showsSuppressionButton = true
         alert.suppressionButton?.title = "Always do this for \(kind.isEmpty ? "such" : ".\(kind)") files from \(host)"
+        // Which app: every one that says it opens such a file, the Mac's
+        // own choice first.
+        let type = UTType(filenameExtension: kind) ?? .data
+        var apps = NSWorkspace.shared.urlsForApplications(toOpen: type)
+        if let usual = NSWorkspace.shared.urlForApplication(toOpen: type) {
+            apps.removeAll { $0 == usual }
+            apps.insert(usual, at: 0)
+        }
+        let menu = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 230, height: 26), pullsDown: false)
+        for app in apps {
+            menu.addItem(withTitle: "")
+            menu.lastItem?.title = "Open with " + app.deletingPathExtension().lastPathComponent
+        }
+        if !apps.isEmpty { alert.accessoryView = menu }
         let answer = alert.runModal()
         guard answer != .alertThirdButtonReturn else { return .cancel }
         let act: Act = answer == .alertFirstButtonReturn ? .open : .save
+        let app = act == .open && apps.indices.contains(menu.indexOfSelectedItem) ? apps[menu.indexOfSelectedItem].path : nil
+        picked = app
         if alert.suppressionButton?.state == .on {
             var rules = read()
             var site = rules[host.lowercased()] as? [String: Any] ?? [:]
-            site[kind] = act.rawValue
+            site[kind] = app.map { ["do": act.rawValue, "with": $0] } ?? act.rawValue
             rules[host.lowercased()] = site
             if let data = try? JSONSerialization.data(withJSONObject: rules, options: [.prettyPrinted, .sortedKeys]) {
                 try? data.write(to: url, options: .atomic)
@@ -73,7 +92,8 @@ enum DownloadRules {
             try? FileManager.default.removeItem(at: kept)
         }
         let file = Browser.free(name, in: folder)
-        opening[file.standardizedFileURL] = .some(rule(name, from: host, in: read())?.with)
+        opening[file.standardizedFileURL] = .some(rule(name, from: host, in: read())?.with ?? picked)
+        picked = nil
         return file
     }
 
@@ -81,7 +101,7 @@ enum DownloadRules {
     static func finished(_ file: URL) {
         guard let app = opening.removeValue(forKey: file.standardizedFileURL) else { return }
         let named = app.flatMap { name in
-            NSWorkspace.shared.urlForApplication(withBundleIdentifier: name)
+            name.hasPrefix("/") ? URL(fileURLWithPath: name) : NSWorkspace.shared.urlForApplication(withBundleIdentifier: name)
                 ?? ["/Applications", NSHomeDirectory() + "/Applications"]
                     .map { URL(fileURLWithPath: "\($0)/\(name).app") }
                     .first { FileManager.default.fileExists(atPath: $0.path) }
