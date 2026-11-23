@@ -298,6 +298,8 @@ private struct SplitTabHalf: View {
                         ReadingFill(meter: tab.meter, width: geo.size.width)
                     }
                 }
+                // Themes (fork): the bar down the live tab's left, as Zen's.
+                if Theme.flag("stripe") { Theme.accent.colour.frame(width: 3) }
             }
             .clipShape(shape)
             .matchedGeometryEffect(id: "live", in: pill)

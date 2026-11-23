@@ -96,4 +96,12 @@ final class TilesTests: XCTestCase {
         XCTAssertTrue(split.remove(a))
         XCTAssertEqual(split.stacks, [1, 1])
     }
+
+    func testTheSessionFileKeepsTheColumns() throws {
+        let split = Session.Split(tabs: [0, 1, 2, 3], sizes: [0.25, 0.25, 0.25, 0.25], stacks: [2, 2])
+        let back = try JSONDecoder().decode(Session.Split.self, from: JSONEncoder().encode(split))
+        XCTAssertEqual(back.stacks, [2, 2])
+        let row = try JSONDecoder().decode(Session.Split.self, from: JSONEncoder().encode(Session.Split(tabs: [0, 1], sizes: [0.5, 0.5])))
+        XCTAssertNil(row.stacks)
+    }
 }

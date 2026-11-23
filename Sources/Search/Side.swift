@@ -2275,6 +2275,8 @@ private struct SideRow: View, Equatable {
                         ReadingFill(meter: tab.meter, width: geo.size.width)
                     }
                 }
+                // Themes (fork): the bar down the live tab's left, as Zen's.
+                if Theme.flag("stripe") { Theme.accent.colour.frame(width: 3) }
             }
             .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             .modifier(LiveMatch(id: LivePill.id(browser), in: pill, tab: tab.id))
@@ -2289,7 +2291,8 @@ private struct SideRow: View, Equatable {
 
     private var colour: Color {
         if live || prefs.highContrastText {
-            return putAway ? Palette.ink.opacity(0.45) : Palette.ink
+            let ink = live ? Theme.own("inkLive") ?? Palette.ink : Palette.ink
+            return putAway ? ink.opacity(0.45) : ink
         }
         let colour = hovering ? Palette.ink.opacity(0.7) : greys.muted
         return putAway ? colour.opacity(0.45) : colour

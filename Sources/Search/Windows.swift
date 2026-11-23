@@ -122,6 +122,7 @@ enum Browsers {
         guard !all.contains(where: { $0 === browser }) else { return }
         all.append(browser)
         if Front.shared.browser == nil { Front.shared.set(browser) }
+        Theme.follow(browser) // fork: theme.json
         // Extensions see every window (windows.getAll, a tab's windowId).
         if #available(macOS 15.4, *) { Extensions.shared.attach(browser) }
     }

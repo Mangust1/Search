@@ -211,8 +211,6 @@ final class PaneStage: NSView {
     /// One for each page: bright round the one with the keys, dim round
     /// the others.
     private var rings: [FocusRing] = []
-    static let ringColour = NSColor(srgbRed: 0xff / 255, green: 0xa0 / 255, blue: 0x28 / 255, alpha: 1)
-    static let ringDim = NSColor(srgbRed: 0x66 / 255, green: 0x5c / 255, blue: 0x54 / 255, alpha: 1)
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -514,7 +512,9 @@ final class PaneStage: NSView {
             ring.frame = frames[index]
             ring.layer?.cornerRadius = corner
             ring.layer?.borderWidth = index == lit ? 2 : 1
-            ring.layer?.borderColor = (index == lit ? Self.ringColour : Self.ringDim).cgColor
+            effectiveAppearance.performAsCurrentDrawingAppearance {
+                ring.layer?.borderColor = (index == lit ? Theme.accent.ns : Theme.accentDim).cgColor
+            }
         }
         // A window made too narrow for two takes the other page off, and
         // gives it back once there is room.

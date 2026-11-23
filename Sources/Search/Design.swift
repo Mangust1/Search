@@ -11,17 +11,20 @@ import AppKit
 // light, dark, or whatever the Mac is doing. Nothing else in the code knows
 // which it is.
 enum Palette {
-    static let ground = Color(nsColor: NS.ground)
-    static let ink = Color(nsColor: NS.ink)             // neutral-900 · neutral-100
-    static let muted = Color(nsColor: NS.muted)         // neutral-500
-    static let faint = Color(nsColor: NS.faint)         // neutral-300 · neutral-700
-    static let hairline = Color(nsColor: NS.hairline)   // neutral-200 · neutral-800
-    static let wash = Color(nsColor: NS.wash)           // the live tab
-    static let hover = Color(nsColor: NS.hover)         // the one under the pointer
+    // Fork: each is made again when theme.json changes (see Theme.swift),
+    // as SwiftUI keeps what a colour resolved to for as long as it is
+    // handed the same one. The second word is its name in the file.
+    static var ground: Color { Theme.colour("ground", 1.0, 0.11) }
+    static var ink: Color { Theme.colour("ink", 0.09, 0.93) }             // neutral-900 · neutral-100
+    static var muted: Color { Theme.colour("muted", 0.55, 0.58) }         // neutral-500
+    static var faint: Color { Theme.colour("faint", 0.83, 0.32) }         // neutral-300 · neutral-700
+    static var hairline: Color { Theme.colour("hairline", 0.91, 0.20) }   // neutral-200 · neutral-800
+    static var wash: Color { Theme.colour("tab", 0.937, 0.175) }          // the live tab
+    static var hover: Color { Theme.colour("hover", 0.965, 0.15) }        // the one under the pointer
     /// Around the page's card, with the tabs down the side: the column, the
     /// bookmarks bar and the gaps share it, a touch off the page's white, so
     /// the card reads as one (see CardEdge).
-    static let frame = Color(nsColor: NS.frame)
+    static var frame: Color { Theme.colour("frame", 0.955, 0.075) }
     /// The only two that aren't grey: a connection nobody can read on the
     /// way, and one anybody can (see SiteCard.swift).
     static let safe = Color(nsColor: NS.safe)           // green-700 · green-400
@@ -30,16 +33,18 @@ enum Palette {
     /// The same colours for the AppKit corners of the app — a text field's
     /// ink, a window's background — which want an NSColor and keep it.
     enum NS {
-        static let ground = pair(1.0, 0.11)
-        static let ink = pair(0.09, 0.93)
-        static let muted = pair(0.55, 0.58)
-        static let faint = pair(0.83, 0.32)
-        static let hairline = pair(0.91, 0.20)
-        static let wash = pair(0.937, 0.175)
-        static let hover = pair(0.965, 0.15)
-        static let frame = pair(0.955, 0.075)
+        static var ground: NSColor { Theme.ns("ground", 1.0, 0.11) }
+        static var ink: NSColor { Theme.ns("ink", 0.09, 0.93) }
+        static var muted: NSColor { Theme.ns("muted", 0.55, 0.58) }
+        static var faint: NSColor { Theme.ns("faint", 0.83, 0.32) }
+        static var hairline: NSColor { Theme.ns("hairline", 0.91, 0.20) }
+        static var wash: NSColor { Theme.ns("tab", 0.937, 0.175) }
+        static var hover: NSColor { Theme.ns("hover", 0.965, 0.15) }
+        static var frame: NSColor { Theme.ns("frame", 0.955, 0.075) }
         /// The resting traffic lights, drawn by hand when the app is behind.
-        static let resting = pair(0.80, 0.30)
+        static let resting = NSColor(name: nil) { appearance in
+            NSColor(white: appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? 0.30 : 0.80, alpha: 1)
+        }
         static let safe = tint(light: (0.08, 0.50, 0.24), dark: (0.29, 0.87, 0.50))
         static let unsafe = tint(light: (0.71, 0.33, 0.04), dark: (0.98, 0.75, 0.14))
 
@@ -47,13 +52,6 @@ enum Palette {
             NSColor(name: nil) { appearance in
                 let c = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
                 return NSColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1)
-            }
-        }
-
-        private static func pair(_ light: CGFloat, _ dark: CGFloat) -> NSColor {
-            NSColor(name: nil) { appearance in
-                let dim = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-                return NSColor(white: dim ? dark : light, alpha: 1)
             }
         }
     }
@@ -87,11 +85,21 @@ struct Greys {
     // white, or the frame beside the card). On that ground nothing changes;
     // on a space's colour or gradient they take its tint, where an opaque
     // grey sat on it as a grey patch (Drice, 18 Nov 2026).
-    static let white = Greys(wash: shade(0.063, 0.073), hover: shade(0.035, 0.045),
+    // Fork: the file's "tab", "hover", "muted" and "faint" in place of the
+    // shades, where it gives them (see Theme.swift).
+    static var white: Greys { plainWhite.themed }
+    static var frame: Greys { plainFrame.themed }
+    private var themed: Greys {
+        Greys(wash: Theme.own("tab") ?? wash, hover: Theme.own("hover") ?? hover, tile: tile, pinLive: pinLive,
+              washOnTile: Theme.own("tab") ?? washOnTile, hoverOnTile: Theme.own("hover") ?? hoverOnTile,
+              muted: Theme.own("muted") ?? muted, faint: Theme.own("faint") ?? faint)
+    }
+
+    private static let plainWhite = Greys(wash: shade(0.063, 0.073), hover: shade(0.035, 0.045),
                              tile: shade(0.063, 0.073).opacity(0.55), pinLive: shade(0.10, 0.112),
                              washOnTile: shade(0.0294, 0.0342), hoverOnTile: shade(0.004, 0.005),
                              muted: shade(0.45, 0.5281), faint: shade(0.17, 0.236))
-    static let frame = Greys(wash: shade(0.0628, 0.0865), hover: shade(0.0419, 0.0595),
+    private static let plainFrame = Greys(wash: shade(0.0628, 0.0865), hover: shade(0.0419, 0.0595),
                              tile: shade(0.0314, 0.0432), pinLive: shade(0.0995, 0.1243),
                              washOnTile: shade(0.0324, 0.0452), hoverOnTile: shade(0.0108, 0.0169),
                              muted: shade(0.4241, 0.5459), faint: shade(0.1309, 0.2649))
@@ -105,7 +113,7 @@ struct Greys {
 }
 
 private struct GreysKey: EnvironmentKey {
-    static let defaultValue = Greys.white
+    static var defaultValue: Greys { Greys.white }
 }
 
 extension EnvironmentValues {

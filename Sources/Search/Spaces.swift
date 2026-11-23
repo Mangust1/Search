@@ -414,7 +414,7 @@ extension Browser {
     /// profile shown. None with spaces off, and while a new one is being
     /// made, as the dot has.
     var wash: SpaceLook? {
-        prefs.usesSpaces && !makingSpace ? washSpace.look : nil
+        prefs.usesSpaces && !makingSpace && !Theme.hidesWash ? washSpace.look : nil
     }
 
     /// How strongly the wash is drawn: the space on screen's strength.
