@@ -307,6 +307,11 @@ struct SearchApp: App {
                     Button("Focus Right Page") { browser.focusPane(onLeft: false) }
                         .shortcut("tabs.focusRightPane")
                         .disabled(browser.activeSplit == nil)
+                    // Tiles (fork)
+                    if browser.activeSplit?.isTiled == true {
+                        Button("Focus Page Above") { browser.focusPane(.up) }.shortcut("tabs.focusPaneAbove")
+                        Button("Focus Page Below") { browser.focusPane(.down) }.shortcut("tabs.focusPaneBelow")
+                    }
                     Button("Swap Pages") { browser.swapSplit() }
                         .shortcut("tabs.swapSplit")
                         .disabled(browser.activeSplit == nil)
@@ -1836,6 +1841,8 @@ struct ContentView: View {
             if combo == store.key(for: "tabs.focusLeftPane") { browser.focusPane(onLeft: true); return true }
             if combo == store.key(for: "tabs.focusRightPane") { browser.focusPane(onLeft: false); return true }
             if combo == store.key(for: "tabs.focusOtherPane") { browser.focusOtherPane(); return true }
+            if combo == store.key(for: "tabs.focusPaneAbove") { browser.focusPane(.up); return true }
+            if combo == store.key(for: "tabs.focusPaneBelow") { browser.focusPane(.down); return true }
             // Tiles (fork): the same for the keys that move a page.
             for (id, way) in [("tabs.movePaneLeft", TabSplit.Way.left), ("tabs.movePaneRight", .right),
                               ("tabs.movePaneUp", .up), ("tabs.movePaneDown", .down)]

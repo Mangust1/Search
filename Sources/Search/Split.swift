@@ -144,6 +144,23 @@ struct TabSplit: Identifiable, Equatable {
         stacks.indices.map { Array(tabs[start(of: $0)..<start(of: $0) + stacks[$0]]) }
     }
 
+    /// The page next to this one that way, as they are on screen: above
+    /// or under it in its column, or in the column to its left or right at
+    /// the same height (the last of a shorter column). Nil at an edge.
+    func beside(_ tab: Tab.ID, _ way: Way) -> Tab.ID? {
+        guard let index = tabs.firstIndex(of: tab) else { return nil }
+        let columns = self.columns
+        let column = self.column(of: index), row = index - start(of: column)
+        switch way {
+        case .up: return row > 0 ? columns[column][row - 1] : nil
+        case .down: return row + 1 < columns[column].count ? columns[column][row + 1] : nil
+        case .left, .right:
+            let side = way == .left ? column - 1 : column + 1
+            guard columns.indices.contains(side) else { return nil }
+            return columns[side][min(row, columns[side].count - 1)]
+        }
+    }
+
     /// The split with this page moved one step, or nil when there is
     /// nowhere to go. Up and down, it changes places with the page above or
     /// under it. Left and right, a page sharing a column steps out into a

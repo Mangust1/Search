@@ -4552,10 +4552,13 @@ final class Browser: NSObject, ObservableObject {
 
     /// ⌃⌘← and ⌃⌘→: the page next to it on that side, none past the ends.
     /// Of two, the page on that side.
-    func focusPane(onLeft: Bool) {
-        guard let pair = activeSplit, let id = activeID, let at = pair.tabs.firstIndex(of: id) else { return }
-        let next = min(max(0, at + (onLeft ? -1 : 1)), pair.tabs.count - 1)
-        guard let tab = tabs.first(where: { $0.id == pair.tabs[next] }) else { return }
+    func focusPane(onLeft: Bool) { focusPane(onLeft ? .left : .right) }
+
+    /// Tiles (fork): the keys to the page next to this one that way, as
+    /// they are on screen. In a row, left and right are what they were.
+    func focusPane(_ way: TabSplit.Way) {
+        guard let pair = activeSplit, let id = activeID, let next = pair.beside(id, way),
+              let tab = tabs.first(where: { $0.id == next }) else { return }
         focusPane(tab)
     }
 
@@ -4693,7 +4696,7 @@ final class Browser: NSObject, ObservableObject {
 
     // MARK: - tiles (fork)
 
-    /// Tabs › Move Page Left, Right, Up, Down (⌃⇧⌘ and an arrow): the page
+    /// Tabs › Move Page Left, Right, Up, Down (⌃⇧ and an arrow): the page
     /// with the keys moved one step in the split (see TabSplit.moved). The
     /// row follows the split's order, as it does when the pages swap.
     func moveInSplit(_ way: TabSplit.Way) {

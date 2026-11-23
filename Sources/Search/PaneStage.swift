@@ -205,6 +205,15 @@ final class PaneStage: NSView {
 
     override var isFlipped: Bool { true }
 
+    /// Tiles (fork): a line round the page the keys go to, of two or more
+    /// on screen, as Zen draws it. Over the pages, and never in the way of
+    /// a click.
+    /// One for each page: bright round the one with the keys, dim round
+    /// the others.
+    private var rings: [FocusRing] = []
+    static let ringColour = NSColor(srgbRed: 0xff / 255, green: 0xa0 / 255, blue: 0x28 / 255, alpha: 1)
+    static let ringDim = NSColor(srgbRed: 0x66 / 255, green: 0x5c / 255, blue: 0x54 / 255, alpha: 1)
+
     override init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true
@@ -298,6 +307,15 @@ final class PaneStage: NSView {
             shadow.actions = ["bounds": NSNull(), "position": NSNull(), "hidden": NSNull()]
             layer?.insertSublayer(shadow, at: 0)
             shadows.append(shadow)
+            // Tiles (fork): its line, over the pages and the dividers.
+            let ring = FocusRing()
+            ring.wantsLayer = true
+            ring.layer?.cornerCurve = .continuous
+            ring.layer?.actions = ["bounds": NSNull(), "position": NSNull(), "hidden": NSNull(),
+                                   "borderColor": NSNull(), "borderWidth": NSNull()]
+            ring.isHidden = true
+            addSubview(ring, positioned: .above, relativeTo: divider)
+            rings.append(ring)
         }
         while moreDividers.count < max(0, tabs.count - 2) {
             let more = PaneDivider()
@@ -486,6 +504,17 @@ final class PaneStage: NSView {
             // No line round the page the keys go to: as a card or edge to
             // edge, it read as a stray frame on one page of two (Drice,
             // 18 Nov 2026). The page clicked last is the one they go to.
+        }
+        // Tiles (fork): the line round the page with the keys.
+        let lit = (focused ?? tabs.first?.id).flatMap { id in tabs.firstIndex { $0.id == id } }
+        for (index, ring) in rings.enumerated() {
+            let on = paired && frames.indices.contains(index) && frames[index].width > 0
+            ring.isHidden = !on
+            guard on else { continue }
+            ring.frame = frames[index]
+            ring.layer?.cornerRadius = corner
+            ring.layer?.borderWidth = index == lit ? 2 : 1
+            ring.layer?.borderColor = (index == lit ? Self.ringColour : Self.ringDim).cgColor
         }
         // A window made too narrow for two takes the other page off, and
         // gives it back once there is room.
@@ -856,6 +885,11 @@ final class PaneStage: NSView {
 /// edge, a hairline down the gutter does. Dragged, the pages follow it;
 /// double-clicked, they are made even. It never takes the keys: the page
 /// keeps them.
+/// Tiles (fork): the line round the focused page; clicks go through it.
+final class FocusRing: NSView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
 final class PaneDivider: NSView {
     weak var stage: PaneStage?
     /// The page it follows: the first divider is after the first page.

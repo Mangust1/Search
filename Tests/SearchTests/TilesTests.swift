@@ -69,6 +69,21 @@ final class TilesTests: XCTestCase {
         XCTAssertEqual(split.sizes, [0.5, 0.5])
     }
 
+    func testFocusGoesToThePageOnThatSide() {
+        // a | b over c
+        let split = TabSplit(tabs: [a, b, c], stacks: [1, 2])
+        XCTAssertEqual(split.beside(a, .right), b)
+        XCTAssertEqual(split.beside(b, .down), c)
+        XCTAssertEqual(split.beside(c, .left), a)
+        XCTAssertNil(split.beside(c, .down))
+        XCTAssertNil(split.beside(a, .up))
+        // In a row, left and right are the neighbours, as before.
+        let row = TabSplit(tabs: [a, b, c])
+        XCTAssertEqual(row.beside(b, .left), a)
+        XCTAssertEqual(row.beside(b, .right), c)
+        XCTAssertNil(row.beside(c, .right))
+    }
+
     func testRemoveAndInsertKeepTheColumns() {
         var split = TabSplit(tabs: [a, b, c], stacks: [1, 2])
         // A page coming in beside a stacked one gets a column after that whole column.
