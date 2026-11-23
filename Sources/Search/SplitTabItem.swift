@@ -53,7 +53,7 @@ struct SplitTabItem: View {
                     ZStack(alignment: .top) {
                         ForEach(1..<max(1, pages.count), id: \.self) { index in
                             Rectangle()
-                                .fill(Palette.hairline)
+                                .fill(Theme.own("tileLine") ?? Palette.hairline)
                                 .frame(height: 1)
                                 .padding(.horizontal, 10)
                                 .offset(y: CGFloat(index) * height - 0.5)
@@ -67,7 +67,7 @@ struct SplitTabItem: View {
                     ForEach(pages.indices, id: \.self) { index in
                         if index > 0 {
                             Rectangle()
-                                .fill(Palette.hairline)
+                                .fill(Theme.own("tileLine") ?? Palette.hairline)
                                 .frame(width: 1)
                                 .padding(.vertical, inset + 6)
                         }
@@ -90,7 +90,7 @@ struct SplitTabItem: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .strokeBorder(Palette.hairline, lineWidth: 1)
+                .strokeBorder(Theme.own("tileLine") ?? Palette.hairline, lineWidth: 1)
                 .padding(.vertical, inset)
                 .allowsHitTesting(false)
         }

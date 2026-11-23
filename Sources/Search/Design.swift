@@ -90,7 +90,7 @@ struct Greys {
     static var white: Greys { plainWhite.themed }
     static var frame: Greys { plainFrame.themed }
     private var themed: Greys {
-        Greys(wash: Theme.own("tab") ?? wash, hover: Theme.own("hover") ?? hover, tile: tile, pinLive: pinLive,
+        Greys(wash: Theme.own("tab") ?? wash, hover: Theme.own("hover") ?? hover, tile: Theme.own("tile") ?? tile, pinLive: pinLive,
               washOnTile: Theme.own("tab") ?? washOnTile, hoverOnTile: Theme.own("hover") ?? hoverOnTile,
               muted: Theme.own("muted") ?? muted, faint: Theme.own("faint") ?? faint)
     }

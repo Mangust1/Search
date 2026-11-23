@@ -43,6 +43,8 @@ not touched by it.
 | `faint` | the quietest text and marks |
 | `accent` | the line round the focused page of a split, the live tab's stripe |
 | `accentDim` | the line round the other pages of a split |
+| `tile` | the box round a split's tabs in the sidebar |
+| `tileLine` | that box's outline and the lines between its tabs (else `hairline`) |
 | `stripe` | `true`: a 3-point `accent` bar down the left of the live tab |
 | `wash` | `true`: keep Search's own colour wash for a space on top of the palette (off by default once a theme is loaded) |
 
