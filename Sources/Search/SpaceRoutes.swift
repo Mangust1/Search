@@ -102,6 +102,9 @@ enum SpaceRoutes {
 
     @MainActor static func space(for url: URL) -> Space? {
         let prefs = Shared.prefs
+        // Routes file (fork): a text anywhere in the address, before the sites.
+        if prefs.usesSpaces, let name = TextRoutes.space(for: url.absoluteString),
+           let space = Spaces.known.values.first(where: { $0.name == name }) { return space }
         return space(for: url, routes: prefs.spaceRoutes, on: prefs.usesSpaces && prefs.sendsLinksToSpaces,
                      spaces: Spaces.known)
     }
@@ -236,5 +239,44 @@ struct SpaceRouteList: View {
         guard let site = SpaceRoutes.site(typed), let space = chosen ?? SpaceRoutes.choices.first?.id else { return }
         SpaceRoutes.set(site, to: space)
         typed = ""
+    }
+}
+
+/// Routes file (fork): `routes.json` in the data folder sends an address to
+/// a space by any text in it — a path, a query, the part after the # —
+/// where a rule above knows only the site (see ROUTES.md):
+///
+///     { "Work": ["bitbucket.org/acme", "#space=work"], "Personal": ["youtube.com"] }
+///
+/// Space names to the texts that send there; the longest text found in the
+/// address wins. Read again whenever the file has changed. The file being
+/// there is the switch: it needs spaces on, and nothing in Settings.
+@MainActor
+enum TextRoutes {
+    private static var kept: (stamp: Date, rules: [(text: String, space: String)])?
+
+    static func space(for address: String) -> String? {
+        let file = Store.file("routes.json")
+        guard let stamp = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate else { return nil }
+        if kept?.stamp != stamp {
+            let json = (try? Data(contentsOf: file)).flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]
+            kept = (stamp, rules(json ?? [:]))
+        }
+        return match(address, in: kept?.rules ?? [])
+    }
+
+    /// A leading * is dropped, so "*.example.com" is ".example.com".
+    static func rules(_ json: [String: Any]) -> [(text: String, space: String)] {
+        json.flatMap { space, texts in
+            (texts as? [String] ?? []).compactMap { text in
+                let text = String(text.drop { $0 == "*" }).lowercased()
+                return text.isEmpty ? nil : (text, space)
+            }
+        }
+    }
+
+    static func match(_ address: String, in rules: [(text: String, space: String)]) -> String? {
+        let address = address.lowercased()
+        return rules.filter { address.contains($0.text) }.max { $0.text.count < $1.text.count }?.space
     }
 }

@@ -52,4 +52,13 @@ final class UserScriptsTests: XCTestCase {
         XCTAssertTrue(script.mainFrameOnly)
         XCTAssertTrue(UserScripts.wrap(script).contains("document.title"))
     }
+
+    func testTextRoutesTakeTheLongestTextInTheAddress() {
+        let rules = TextRoutes.rules(["Work": ["bitbucket.org/acme", "#space=work", "*.acme.example"], "Personal": ["bitbucket.org"], "Bad": [""]])
+        XCTAssertEqual(TextRoutes.match("https://bitbucket.org/acme/repo", in: rules), "Work")
+        XCTAssertEqual(TextRoutes.match("https://bitbucket.org/me/repo", in: rules), "Personal")
+        XCTAssertEqual(TextRoutes.match("https://example.com/login#space=WORK", in: rules), "Work")
+        XCTAssertEqual(TextRoutes.match("https://app.acme.example/", in: rules), "Work")
+        XCTAssertNil(TextRoutes.match("https://example.com/", in: rules))
+    }
 }

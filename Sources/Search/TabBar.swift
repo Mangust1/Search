@@ -1974,6 +1974,29 @@ struct TabMenu: View {
                         Label(space.name, systemImage: space.symbol)
                     }
                 }
+                // Fork: the spaces of the other profiles too. The page is
+                // closed here and opened there, as its sign-ins are others.
+                let elsewhere = Spaces.known.values
+                    .filter { space in !browser.spaces.contains { $0.id == space.id } }
+                    .sorted { $0.name < $1.name }
+                if !elsewhere.isEmpty, let url = tab.address {
+                    if browser.spaces.count > 1 { Divider() }
+                    ForEach(elsewhere) { space in
+                        Button {
+                            // Closed first, while it is still this window's;
+                            // put back here if the space can't be shown.
+                            browser.close(tab)
+                            guard let target = SpaceRoutes.window(for: space, from: browser) else {
+                                browser.open(url, foreground: true)
+                                return
+                            }
+                            target.open(url, foreground: true)
+                            if target !== browser { Browsers.show(target) }
+                        } label: {
+                            Label(space.name, systemImage: space.symbol)
+                        }
+                    }
+                }
                 if browser.spaces.count > 1 { Divider() }
                 Button("New Space…") {
                     browser.askForSpace { space in
