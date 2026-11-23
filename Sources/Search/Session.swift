@@ -63,6 +63,9 @@ enum Session {
         var sizes: [Double]
         /// The page last focused, by its place in `tabs`.
         var focused: Int?
+        /// Tiles (fork): pages per column (TabSplit.stacks); absent for a row,
+        /// so a file from before, or read by the original, is as it was.
+        var stacks: [Int]?
     }
 
     /// The first space's is the session there always was; each other space

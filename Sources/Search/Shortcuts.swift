@@ -296,6 +296,19 @@ struct Command: Identifiable {
             guard browser.prefs.splitView else { return }
             browser.focusOtherPane()
         },
+        // Tiles (fork)
+        Command("tabs.movePaneLeft", "Move Page Left", .tabs, KeyCombo("left", shift: true, control: true)) { browser in
+            browser.moveInSplit(.left)
+        },
+        Command("tabs.movePaneRight", "Move Page Right", .tabs, KeyCombo("right", shift: true, control: true)) { browser in
+            browser.moveInSplit(.right)
+        },
+        Command("tabs.movePaneUp", "Move Page Up", .tabs, KeyCombo("up", shift: true, control: true)) { browser in
+            browser.moveInSplit(.up)
+        },
+        Command("tabs.movePaneDown", "Move Page Down", .tabs, KeyCombo("down", shift: true, control: true)) { browser in
+            browser.moveInSplit(.down)
+        },
         Command("tabs.swapSplit", "Swap Pages", .tabs, nil) { browser in
             guard browser.prefs.splitView else { return }
             browser.swapSplit()
@@ -642,7 +655,8 @@ extension Command {
     /// Split View's commands: with it off, not listed, and their keys go on
     /// to the page.
     static let split: Set<String> = ["tabs.split", "tabs.focusLeftPane", "tabs.focusRightPane", "tabs.focusOtherPane",
-                                     "tabs.swapSplit", "tabs.separateSplit"]
+                                     "tabs.swapSplit", "tabs.separateSplit",
+                                     "tabs.movePaneLeft", "tabs.movePaneRight", "tabs.movePaneUp", "tabs.movePaneDown"]
     /// The AI add-on's: with it off, not listed.
     static let ai: Set<String> = ["view.summarize", "view.ask"]
     /// Dark pages': with them off, not listed, and their keys go on to the page.

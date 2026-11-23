@@ -4286,8 +4286,10 @@ final class Browser: NSObject, ObservableObject {
                   places == Array(places[0]..<places[0] + places.count) else { return nil }
             let sizes = written.count == pair.tabs.count || pair.sizes.count != pair.tabs.count
                 ? pair.sizes : TabSplit.clamp(written.map { pair.sizes[$0] })
+            // Tiles (fork): the columns only with every page written; else a row.
             return Session.Split(tabs: places, axis: pair.axis, sizes: sizes,
-                                 focused: pair.focused.flatMap { indices[$0] })
+                                 focused: pair.focused.flatMap { indices[$0] },
+                                 stacks: written.count == pair.tabs.count && pair.isTiled ? pair.stacks : nil)
         }
         return .init(tabs: entries, active: active, groups: keptGroups, splits: savedSplits)
     }
@@ -4676,6 +4678,7 @@ final class Browser: NSObject, ObservableObject {
         guard members.count == pair.tabs.count, let start = tabs.firstIndex(where: { $0.id == pair.left }) else { return }
         splits[index].tabs.reverse()
         splits[index].sizes.reverse()
+        splits[index].stacks.reverse()
         var row = tabs.filter { !pair.contains($0.id) }
         row.insert(contentsOf: members.reversed(), at: min(start, row.count))
         tabs = row
@@ -4685,7 +4688,31 @@ final class Browser: NSObject, ObservableObject {
     /// The divider's menu › Even Out, or a double-click on it.
     func evenSplit() {
         guard let pair = activeSplit else { return }
-        setSplitSizes(pair.id, TabSplit.even(pair.tabs.count))
+        setSplitSizes(pair.id, TabSplit.even(stacks: pair.stacks))
+    }
+
+    // MARK: - tiles (fork)
+
+    /// Tabs › Move Page Left, Right, Up, Down (⌃⇧⌘ and an arrow): the page
+    /// with the keys moved one step in the split (see TabSplit.moved). The
+    /// row follows the split's order, as it does when the pages swap.
+    func moveInSplit(_ way: TabSplit.Way) {
+        guard prefs.splitView, let pair = activeSplit, let shown = active,
+              let index = splits.firstIndex(where: { $0.id == pair.id }),
+              let start = tabs.firstIndex(where: { $0.id == pair.left }),
+              let tiled = pair.moved(shown.id, way) else { return }
+        let members = tiled.tabs.compactMap { id in tabs.first { $0.id == id } }
+        guard members.count == tiled.tabs.count else { return }
+        splits[index] = tiled
+        var row = tabs.filter { !pair.contains($0.id) }
+        row.insert(contentsOf: members, at: min(start, row.count))
+        tabs = row
+        rememberSession()
+    }
+
+    func canMoveInSplit(_ way: TabSplit.Way) -> Bool {
+        guard prefs.splitView, let pair = activeSplit, let shown = active else { return false }
+        return pair.moved(shown.id, way) != nil
     }
 
     /// The divider's menu › Close Both. Remembered as one, as Close Tabs
@@ -7010,7 +7037,7 @@ final class Browser: NSObject, ObservableObject {
             guard members.count == saved.tabs.count, members.count <= TabSplit.most,
                   !members.contains(where: { taken.contains($0.id) }) else { continue }
             let pair = TabSplit(tabs: members.map(\.id), axis: saved.axis, sizes: saved.sizes,
-                                focused: saved.focused.flatMap { bySavedIndex[$0]?.id })
+                                focused: saved.focused.flatMap { bySavedIndex[$0]?.id }, stacks: saved.stacks)
             guard Browser.holds(pair, in: row) else { continue }
             restoredSplits.append(pair)
             taken.formUnion(pair.tabs)

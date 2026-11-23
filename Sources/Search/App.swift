@@ -310,6 +310,17 @@ struct SearchApp: App {
                     Button("Swap Pages") { browser.swapSplit() }
                         .shortcut("tabs.swapSplit")
                         .disabled(browser.activeSplit == nil)
+                    // Tiles (fork): the page with the keys moved a step in the split.
+                    if browser.activeSplit != nil {
+                        Button("Move Page Left") { browser.moveInSplit(.left) }
+                            .shortcut("tabs.movePaneLeft").disabled(!browser.canMoveInSplit(.left))
+                        Button("Move Page Right") { browser.moveInSplit(.right) }
+                            .shortcut("tabs.movePaneRight").disabled(!browser.canMoveInSplit(.right))
+                        Button("Move Page Up") { browser.moveInSplit(.up) }
+                            .shortcut("tabs.movePaneUp").disabled(!browser.canMoveInSplit(.up))
+                        Button("Move Page Down") { browser.moveInSplit(.down) }
+                            .shortcut("tabs.movePaneDown").disabled(!browser.canMoveInSplit(.down))
+                    }
                     if browser.activeSplit == nil || browser.pickedSplit != nil {
                         Button("Separate Split Tabs") {
                             if let tab = browser.active { browser.detachSplit(tab) }
@@ -1825,6 +1836,13 @@ struct ContentView: View {
             if combo == store.key(for: "tabs.focusLeftPane") { browser.focusPane(onLeft: true); return true }
             if combo == store.key(for: "tabs.focusRightPane") { browser.focusPane(onLeft: false); return true }
             if combo == store.key(for: "tabs.focusOtherPane") { browser.focusOtherPane(); return true }
+            // Tiles (fork): the same for the keys that move a page.
+            for (id, way) in [("tabs.movePaneLeft", TabSplit.Way.left), ("tabs.movePaneRight", .right),
+                              ("tabs.movePaneUp", .up), ("tabs.movePaneDown", .down)]
+            where combo == store.key(for: id) {
+                browser.moveInSplit(way)
+                return true
+            }
         }
 
         // ⌘Return keeps a peek, as its other button does: Return or the

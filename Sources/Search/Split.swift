@@ -27,13 +27,20 @@ struct TabSplit: Identifiable, Equatable {
     var sizes: [Double]
     /// The page last focused, to come back to.
     var focused: Tab.ID?
+    /// Tiles (fork): how many pages each column holds, left to right, one
+    /// above the other within a column; `tabs` runs column by column, top
+    /// to bottom. All ones is the row of pages there always was. A column's
+    /// width is its pages' shares added up, and a page's height in it is
+    /// its share of that sum, so `sizes` stays one number per page.
+    var stacks: [Int]
 
     init(id: UUID = UUID(), tabs: [Tab.ID], axis: Axis = .horizontal,
-         sizes: [Double]? = nil, focused: Tab.ID? = nil) {
+         sizes: [Double]? = nil, focused: Tab.ID? = nil, stacks: [Int]? = nil) {
         self.id = id
         self.tabs = tabs
         self.axis = axis
-        self.sizes = TabSplit.even(tabs.count)
+        self.stacks = TabSplit.valid(stacks, for: tabs.count)
+        self.sizes = TabSplit.even(stacks: self.stacks)
         self.focused = focused.flatMap { tabs.contains($0) ? $0 : nil }
         if let sizes, sizes.count == tabs.count { self.sizes = TabSplit.clamp(sizes) }
     }
@@ -86,9 +93,12 @@ struct TabSplit: Identifiable, Equatable {
     @discardableResult
     mutating func insert(_ tab: Tab.ID, beside neighbour: Tab.ID? = nil, before: Bool = false) -> Bool {
         guard !isFull, !contains(tab) else { return false }
-        let at = neighbour.flatMap { tabs.firstIndex(of: $0) }.map { before ? $0 : $0 + 1 } ?? tabs.count
+        // A column of its own, beside the neighbour's whole column.
+        let column = neighbour.flatMap { tabs.firstIndex(of: $0) }.map { self.column(of: $0) }
+        let at = column.map { before ? start(of: $0) : start(of: $0) + stacks[$0] } ?? tabs.count
         tabs.insert(tab, at: at)
-        sizes = TabSplit.even(tabs.count)
+        stacks.insert(1, at: column.map { before ? $0 : $0 + 1 } ?? stacks.count)
+        sizes = TabSplit.even(stacks: stacks)
         return true
     }
 
@@ -98,6 +108,9 @@ struct TabSplit: Identifiable, Equatable {
     @discardableResult
     mutating func remove(_ tab: Tab.ID) -> Bool {
         guard let index = tabs.firstIndex(of: tab) else { return tabs.count >= 2 }
+        let column = self.column(of: index)
+        stacks[column] -= 1
+        if stacks[column] == 0 { stacks.remove(at: column) }
         tabs.remove(at: index)
         if sizes.count > index { sizes.remove(at: index) }
         if sizes.count != tabs.count { sizes = TabSplit.even(tabs.count) }
@@ -105,6 +118,78 @@ struct TabSplit: Identifiable, Equatable {
         if !tabs.isEmpty, total.isFinite, total > 0 { sizes = TabSplit.clamp(sizes.map { $0 / total }) }
         if focused == tab { focused = nil }
         return tabs.count >= 2
+    }
+
+    // MARK: - tiles (fork)
+
+    /// Some column holds more than one page.
+    var isTiled: Bool { stacks.contains { $0 > 1 } }
+
+    /// The place in `tabs` of a column's first page.
+    func start(of column: Int) -> Int { stacks[..<column].reduce(0, +) }
+
+    /// The column the page at `index` is in.
+    func column(of index: Int) -> Int {
+        var end = 0
+        for (column, count) in stacks.enumerated() {
+            end += count
+            if index < end { return column }
+        }
+        return max(0, stacks.count - 1)
+    }
+
+    enum Way { case left, right, up, down }
+
+    private var columns: [[Tab.ID]] {
+        stacks.indices.map { Array(tabs[start(of: $0)..<start(of: $0) + stacks[$0]]) }
+    }
+
+    /// The split with this page moved one step, or nil when there is
+    /// nowhere to go. Up and down, it changes places with the page above or
+    /// under it. Left and right, a page sharing a column steps out into a
+    /// column of its own on that side; one alone in its column joins the
+    /// column on that side, under its pages. So the arrows walk a page
+    /// across every shape. Every page is given an even share again, as
+    /// when one comes in; up and down keep the shares where they are.
+    func moved(_ tab: Tab.ID, _ way: Way) -> TabSplit? {
+        guard let index = tabs.firstIndex(of: tab) else { return nil }
+        var columns = self.columns
+        let column = self.column(of: index), row = index - start(of: column)
+        var next = self
+        switch way {
+        case .up, .down:
+            let other = way == .up ? row - 1 : row + 1
+            guard columns[column].indices.contains(other) else { return nil }
+            next.tabs.swapAt(index, start(of: column) + other)
+            return next
+        case .left, .right:
+            let side = way == .left ? column - 1 : column + 1
+            if columns[column].count > 1 {
+                columns[column].remove(at: row)
+                columns.insert([tab], at: way == .left ? column : column + 1)
+            } else {
+                guard columns.indices.contains(side) else { return nil }
+                columns[side].append(tab)
+                columns.remove(at: column)
+            }
+        }
+        next.tabs = columns.flatMap { $0 }
+        next.stacks = columns.map(\.count)
+        next.sizes = TabSplit.even(stacks: next.stacks)
+        return next
+    }
+
+    /// The columns as given when they add up to `count` pages, else a row.
+    static func valid(_ stacks: [Int]?, for count: Int) -> [Int] {
+        if let stacks, stacks.allSatisfy({ $0 >= 1 }), stacks.reduce(0, +) == count { return stacks }
+        return Array(repeating: 1, count: count)
+    }
+
+    /// Columns of equal width, the pages in each of equal height.
+    static func even(stacks: [Int]) -> [Double] {
+        stacks.flatMap { count in
+            Array(repeating: 1 / Double(max(1, stacks.count)) / Double(count), count: count)
+        }
     }
 
     /// The narrowest share a page has, of `count`: a fifth of the stage
