@@ -188,7 +188,7 @@ final class Extensions: NSObject, ObservableObject {
         WKWebExtension.MatchPattern.registerCustomURLScheme(Extensions.scheme)
         // A test run keeps its extensions' storage apart, as it does its
         // cookies and passwords.
-        let configuration: WKWebExtensionController.Configuration = Store.testing && !Store.ownContainer
+        let configuration: WKWebExtensionController.Configuration = Store.apart && !Store.ownContainer
             ? .init(identifier: Store.probeStore(2))
             : .default()
         configuration.defaultWebsiteDataStore = Store.websites

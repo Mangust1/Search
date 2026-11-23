@@ -14,7 +14,14 @@ enum Store {
     /// is not belt and braces: a development build launched from a terminal
     /// once wrote over somebody's real session, and asking a person to
     /// remember a flag is not a safeguard.
-    static var testing: Bool {
+    static var testing: Bool { apart && world != "fork" }
+
+    /// Fork: a run that keeps its data apart from the installed Search's.
+    /// Every test run does; so does the fork's own world (SEARCH_PROBE=fork,
+    /// which build.sh gives a dev build), and that one is no test run: it
+    /// is used as a browser, takes links from other apps, comes forward,
+    /// asks and notifies as the installed one does.
+    static var apart: Bool {
         if ProcessInfo.processInfo.environment["SEARCH_PROBE"] != nil { return true }
         return Bundle.main.executablePath?.contains("/.build/") == true
     }
@@ -26,7 +33,7 @@ enum Store {
     /// measurement that needs a browser nobody has installed anything in,
     /// never borrow each other's. Nil for the browser somebody is using.
     static let world: String? = {
-        guard testing else { return nil }
+        guard apart else { return nil }
         let asked = (ProcessInfo.processInfo.environment["SEARCH_PROBE"] ?? "").lowercased()
             .filter { ($0.isASCII && ($0.isLetter || $0.isNumber)) || $0 == "-" }
         return asked.isEmpty || asked == "1" || asked == "test" ? "test" : asked
@@ -48,7 +55,7 @@ enum Store {
     /// between probes the way the real one does. Wiping the test store is
     /// then as safe as wiping its folder.
     static var websites: WKWebsiteDataStore {
-        guard testing, !ownContainer else { return .default() }
+        guard apart, !ownContainer else { return .default() }
         return WKWebsiteDataStore(forIdentifier: probeStore(1))
     }
 
@@ -124,7 +131,7 @@ enum Store {
         let support = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let home = support.appendingPathComponent(world.map { "Search (\($0))" } ?? "Search", isDirectory: true)
-        if !testing {
+        if !apart {
             let old = support.appendingPathComponent("Office Browser", isDirectory: true)
             let files = FileManager.default
             if !files.fileExists(atPath: home.path), files.fileExists(atPath: old.path) {
@@ -155,7 +162,7 @@ enum Store {
     /// Settings live apart too: a test that changes what the tabs wear or
     /// where the tabs go must not change yours.
     static let settings: UserDefaults = {
-        guard testing else {
+        guard apart else {
             carryOver(into: .standard)
             return .standard
         }

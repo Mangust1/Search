@@ -295,6 +295,10 @@ if [ "$DEV" = 1 ]; then
   printf '"CFBundleDisplayName" = "%s";\n"CFBundleName" = "%s";\n' "$SHOWN" "$SHOWN" \
     > "$APP/Contents/Resources/en.lproj/InfoPlist.strings"
   /usr/libexec/PlistBuddy -c "Add :LSHasLocalizedDisplayName bool true" "$APP/Contents/Info.plist"
+  # Fork: a dev build opened from Finder, the Dock or as the default browser
+  # lives in its own world too (see Store.world), never in the data of the
+  # Search that is installed.
+  /usr/libexec/PlistBuddy -c "Add :LSEnvironment dict" -c "Add :LSEnvironment:SEARCH_PROBE string fork" "$APP/Contents/Info.plist"
 fi
 
 # Signing. A Developer ID certificate, when there is one, with the hardened
@@ -352,7 +356,13 @@ else
   # A build that cannot sign at all is not a build: `|| true` here let one
   # through as though it had finished, leaving a bundle that would not open.
   # set -e stops it now, with codesign's own words above.
-  codesign --force --deep --sign - "$APP"
+  # Fork: an Apple Development certificate (free, from Xcode's Accounts),
+  # when there is one, in place of ad-hoc. Signed plainly as ad-hoc is, it
+  # gives the build a team identifier, which 1Password asks of a browser
+  # before its app will unlock the extension (Settings › Browser › Add Browser).
+  LOCAL="$(security find-identity -v -p codesigning 2>/dev/null \
+    | grep -o '"Apple Development: [^"]*"' | head -1 | tr -d '"' || true)"
+  codesign --force --deep --sign "${LOCAL:--}" "$APP"
   [ "$STEP" != "app" ] && echo "no Developer ID certificate found — the DMG will only open on this Mac" >&2
 fi
 
