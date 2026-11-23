@@ -9799,7 +9799,17 @@ extension Browser: WKDownloadDelegate {
         let chosen = fetches.destination(for: download)
         let name = Browser.fileName(asked ?? suggestedFilename)
         let folders = asked.map(Browser.downloadFolders) ?? []
-        var file = chosen ?? (folders.isEmpty || prefs.asksWhereToSave ? whereToSave(name) : saveInside(folders, name))
+        // Download rules (fork): open it instead, for a site that says so,
+        // or when the question is asked and that is the answer.
+        var file: URL?
+        let host = download.webView?.url?.host() ?? response.url?.host()
+        let rule = chosen == nil && asked == nil
+            ? host.map { DownloadRules.decide(name, from: $0, asking: prefs.asksWhereToSave) } : nil
+        switch rule {
+        case .open?: file = host.flatMap { DownloadRules.place(name, from: $0) }
+        case .cancel?: file = nil
+        default: file = chosen ?? (folders.isEmpty || prefs.asksWhereToSave ? whereToSave(name) : saveInside(folders, name))
+        }
         // A downloads folder Search can't write to — gone, read-only, or one
         // macOS keeps it out of (Privacy & Security › Files and Folders) —
         // failed as "Cannot create file" at zero KB. Asked where instead, as
@@ -9834,6 +9844,7 @@ extension Browser: WKDownloadDelegate {
         let ended = fetches.finish(download, file: file)
         (ended?.owner ?? self).relinquish(download)
         guard ended != nil else { return }
+        if let file { DownloadRules.finished(file) }
         guard let file else {
             announce("Download finished")
             return

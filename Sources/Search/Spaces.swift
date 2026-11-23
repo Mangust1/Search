@@ -903,8 +903,7 @@ struct SpaceDot: View {
     var body: some View {
         Button { SpaceMenu.show(for: browser) } label: {
             ZStack {
-                Image(systemName: shown?.symbol ?? symbol)
-                    .font(.system(size: 12, weight: .medium))
+                SpaceIcon(name: browser.makingSpace ? nil : space.name, symbol: shown?.symbol ?? symbol, size: 12)
                     .foregroundStyle(tint ?? (hovering ? Palette.ink : Palette.muted))
                     .id(shown?.key ?? key)
                     // The way the tabs go: sideways in the column; in the bar
@@ -1015,8 +1014,7 @@ private struct SpaceButton: View {
         Button {
             if current { SpaceMenu.show(for: browser) } else { browser.goToSpace(space.id) }
         } label: {
-            Image(systemName: space.symbol)
-                .font(.system(size: 11, weight: .medium))
+            SpaceIcon(name: space.name, symbol: space.symbol, size: 11)
                 // Its colour only while it's the one on screen: the others
                 // all grey alike, coloured or not, so a coloured space's
                 // button didn't read as the one you're in.

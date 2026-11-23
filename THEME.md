@@ -50,3 +50,9 @@ not touched by it.
 
 One palette for the whole app: two windows on different spaces both wear the
 front window's.
+
+## Space pictures
+
+A file named after a space in `spaceicons/` in the data folder
+(`spaceicons/Work.png`, or `.svg`, `.pdf`) is shown for that space in the
+sidebar in place of its symbol. Read at launch.

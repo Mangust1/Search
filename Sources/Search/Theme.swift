@@ -200,3 +200,36 @@ enum Theme {
         }
     }
 }
+
+/// Themes (fork): a space's own picture in the sidebar, in place of its
+/// symbol: `spaceicons/<space name>.png` (or .svg, .pdf) in the data folder.
+struct SpaceIcon: View {
+    let name: String?
+    let symbol: String
+    let size: CGFloat
+
+    // ponytail: read once per name, so a new picture shows after a restart.
+    private static var kept: [String: NSImage?] = [:]
+
+    private static func picture(_ name: String) -> NSImage? {
+        if let known = kept[name] { return known }
+        let folder = Store.folder.appendingPathComponent("spaceicons")
+        let image = ["png", "svg", "pdf"].lazy
+            .compactMap { NSImage(contentsOf: folder.appendingPathComponent("\(name).\($0)")) }.first
+        kept[name] = .some(image)
+        return image
+    }
+
+    var body: some View {
+        if let image = name.flatMap(SpaceIcon.picture) {
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size + 5, height: size + 5)
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+        } else {
+            Image(systemName: symbol).font(.system(size: size, weight: .medium))
+        }
+    }
+}
