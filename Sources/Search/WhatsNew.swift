@@ -55,6 +55,46 @@ enum WhatsNew {
         Toggle(title: "AI on pages", detail: "Summarize a page or ask about it. Choose where it runs in Settings › AI.",
                since: "1.0.5", get: { $0.ai }, set: { $0.ai = $1 }),
     ] : []) + [
+        Toggle(title: "Links from pins open in a new tab", detail: "A link clicked in a pinned tab opens in a tab of its own, and the pin stays on its page.",
+               since: "1.0.20", get: { $0.pinLinksOpenTabs }, set: { $0.pinLinksOpenTabs = $1 }),
+
+        Toggle(title: "Keep the window when its last tab closes", detail: "⌘W on the last, empty tab leaves it there, as in Arc; ⇧⌘W still closes the window.",
+               since: "1.0.20", get: { $0.keepWindowAfterLast }, set: { $0.keepWindowAfterLast = $1 }),
+
+        Toggle(title: "Clicking the tab you're on keeps its name", detail: "With the address bar always shown, the address is edited there or with ⌘L.",
+               since: "1.0.20", get: { $0.tabClickKeepsName }, set: { $0.tabClickKeepsName = $1 },
+               shown: { $0.addressLine && !$0.iconColumn }),
+
+        Toggle(title: "Fade scroll bars", detail: "Thin bars over the page that come up as it scrolls and fade when it stops, even with a mouse.",
+               since: "1.0.20", get: { $0.scrollbarsFade }, set: { $0.scrollbarsFade = $1 }),
+
+        Toggle(title: "Space and arrow keys control videos", detail: "Space plays or pauses a clicked video, and ← → skip five seconds, as in Chrome.",
+               since: "1.0.20", get: { $0.videoKeys }, set: { $0.videoKeys = $1 }),
+
+        Toggle(title: "Update ready, in the window", detail: "When a new version is waiting, \"Update ready\" and Restart at the foot of the sidebar, or a pill by the tabs. On; × hides it until the next one.",
+               since: "1.0.20", get: { $0.showsUpdateReady }, set: { $0.showsUpdateReady = $1 }),
+
+        Toggle(title: "Bookmarks bar only on new tabs", detail: "The bookmarks bar above a new tab only, gone once a page opens, as in Chrome and Edge.",
+               since: "1.0.20", get: { $0.bookmarksNewTabOnly }, set: { $0.bookmarksNewTabOnly = $1 },
+               shown: { $0.bookmarksBar && !$0.sideBookmarks }),
+
+        Toggle(title: "Bookmarks bar in the sidebar", detail: "The bookmarks bar at the top of the sidebar, in every space.",
+               since: "1.0.19", get: { $0.bookmarksInSidebar }, set: { $0.bookmarksInSidebar = $1 }),
+        Toggle(title: "The field in the middle of the window", detail: "⌘T's and ⌘L's field centred on the window and higher up, as in Arc.",
+               since: "1.0.19", get: { $0.fieldOnWindow }, set: { $0.fieldOnWindow = $1 }),
+        Toggle(title: "Smooth scrolling with a mouse wheel", detail: "Each notch glides, as in Chrome. A trackpad is left as it is.",
+               since: "1.0.19", get: { $0.wheelGlides }, set: { $0.wheelGlides = $1 }),
+        Toggle(title: "A loading line with the tabs hidden", detail: "A thin line along the page's top while it loads, with the tabs folded away.",
+               since: "1.0.19", get: { $0.showsLoadingLine }, set: { $0.showsLoadingLine = $1 }),
+        Toggle(title: "Click the tab you're on to edit its address", detail: "Without the site card; Site Information… stays on the right-click.",
+               since: "1.0.19", get: { $0.tabClickAddressOnly }, set: { $0.tabClickAddressOnly = $1 }),
+        Toggle(title: "Touch ID before filling a password", detail: "Touch ID, or your Mac's password, before a saved password goes into a page.",
+               since: "1.0.19", get: { $0.asksBeforeFilling }, set: { $0.asksBeforeFilling = $1 }),
+        Toggle(title: "Icons only on the bookmarks bar", detail: "Each bookmark its site's icon, its name on hover. Folders keep their names.",
+               since: "1.0.19", get: { $0.bookmarksIconsOnly }, set: { $0.bookmarksIconsOnly = $1 }),
+        Toggle(title: "Unread counts on pinned tabs", detail: "WhatsApp's or Discord's count as a badge on its pin.",
+               since: "1.0.19", get: { $0.showsPinCounts }, set: { $0.showsPinCounts = $1 }),
+
         Toggle(title: "Sidebar button", detail: "Beside the window's buttons, it hides the sidebar as ⌘S does.",
                since: "1.0.18", get: { $0.foldButton }, set: { $0.foldButton = $1 }),
         Toggle(title: "Narrow to icons", detail: "Pull the sidebar narrower and it becomes a strip of site icons.",
@@ -182,6 +222,8 @@ enum WhatsNew {
     ]
 
     static let releases: [Release] = [
+        Release(version: "1.0.20"),
+        Release(version: "1.0.19"),
         Release(version: "1.0.18"),
         Release(version: "1.0.17"),
         Release(version: "1.0.16"),
@@ -239,6 +281,14 @@ enum WhatsNew {
         return true
     }
 
+    /// Search › What's New… and the About window's button (idea 968): this
+    /// version's card again, exactly as after an update, switches and all.
+    /// Nothing is marked: the card was already seen once.
+    @MainActor static func showAgain(in browser: Browser) {
+        guard current != nil else { return }
+        browser.newsShowing = true
+    }
+
     // MARK: - every version's notes
 
     /// What a version brought, for Settings › About › What's New…
@@ -254,6 +304,89 @@ enum WhatsNew {
 
     /// Newest first.
     static let notes: [Notes] = [
+        Notes(
+            version: "1.0.20", date: "24 November 2026",
+            headline: "Your fixes, from the Dock to extension popups.",
+            new: [
+                "Sync with iCloud carries your tab groups with your open tabs: on another Mac, History › Tabs on Your Other Devices lists them by group, with Open All in Tab Group.",
+                "Links from pinned tabs can open in a tab of their own, in Settings › Spaces & Pins.",
+                "Keep the window when its last tab closes: ⌘W on the last, empty tab leaves it there, as in Arc, in Settings › Tabs.",
+                "Clicking the tab you're on can keep its name while the address bar is shown, in Settings › Tabs.",
+                "A pinned row taken away from its page goes back with a click on its icon, as in Arc.",
+                "Several picked tabs move together into a pin folder or a group, and ⌘Z puts them back in one step.",
+                "A coding agent using Search shows as a card at the foot of the sidebar with Stop, like \"Update ready\".",
+                "Scroll bars that fade once scrolling stops, even with a mouse, in Settings › Appearance › Window.",
+                "Drag a finished download out of the Downloads list as its file, onto a page or into the Finder.",
+                "Send links to a space: links from other apps that match none of your sites can go to a space you pick.",
+                "A peek can share your screen, so Google Meet's Present now works from a pinned Calendar or Gmail.",
+                "vnc://, ssh:// and other apps' addresses typed in the field open in their app.",
+                "Space and the arrow keys play, pause and seek a clicked video, in Settings › Videos.",
+                "When an update is ready, \"Update ready\" and Restart show at the foot of the sidebar, or as a pill by the tabs. On, in Settings › About.",
+                "Developer Tools Lite (Lighthouse, Recorder, device toolbar) and Developer Tools Full (Chrome-style panels docked beside the page): optional downloads in Settings › About › Developer. Web Inspector stays the default.",
+                "Pinned tabs have Site Information… in their right-click menu, so a pinned site's ad blocking and other settings can be changed.",
+                "The bookmarks bar can show only on new tabs, in Settings › Appearance › Tabs.",
+                "A custom search engine can have a suggestions address, in Settings › Browsing › Search with.",
+            ],
+            better: [
+                "Settings is easier to find your way in: Sync and other devices, and Closing and switching, have groups of their own, and the two syncs say how they differ.",
+                "⌘S with the page as a card: the page, the column and the window's buttons slide together, the page and the side panel edge to edge once folded, and the column brought out over it floats as a rounded card.",
+                "Go to a tab that has the page works without small windows too.",
+                "Find on Page finds text inside pages' own components, as on Reddit and MSN.",
+                "Extension popups take their content's size and follow it, growing and shrinking.",
+                "With AdGuard, Search no longer compiles its rules twice at every launch.",
+                "A saved password is offered in the email box of more sign-ins.",
+                "Hidden on This Site… lets a restored row go at once, and can be moved.",
+                "A space's Colour… previews the colour as the window will wear it.",
+            ],
+            fixed: [
+                "⇧⌘B with the Bookmarks button hidden now says \"Bookmarked\" or \"Already a bookmark\".",
+                "The small window from the address field from any app opening behind the app you were in.",
+                "The Dock icon doing nothing while the floating video was up, and the first window missing from the Window menu.",
+                "A page that fails to load showing the page it was leaving in the field: it now shows and copies the address that failed.",
+                "⌘T, ⌘W, ⌘L and the other ⌘ shortcuts with the Dvorak – QWERTY ⌘ layout following the Dvorak letters.",
+                "⌘T's and ⌘L's field in the middle of the window not taking the keys.",
+                "⌘T's and ⌘L's field losing the keys as it finished opening, on macOS 27.",
+                "⌘W going round between a pin and a new tab, and closing a pin not going back to the pin before it.",
+                "A closed tab's page process left spinning a core.",
+                "An extension's popup sent without its window's sign-ins, extension pages in quirks mode, and the extensions list closing as it opened.",
+                "A menu along the page's edge opening under the folded sidebar, and a tab dragged along the hidden sidebar opening Split View.",
+                "Settings › Themes in a narrow window, scroll bars on Search's own pages, the sidebar's foot buttons and long tab titles.",
+            ]
+        ),
+        Notes(
+            version: "1.0.19", date: "23 November 2026",
+            headline: "Your fixes, and more of Arc's ways.",
+            new: [
+                "Set Up Like Arc turns on Arc's newer habits too, and is offered on the welcome and after an Arc import.",
+                "Search › What's New… brings this card back.",
+                "File › Open File…, Paste and Match Style, Open Link in Private Tab, Open Image in Split View and New Tab in Group.",
+                "A » at the end of the bookmarks bar for what doesn't fit, icons only if you like, and a middle-click or ⌘-click on a folder opens all of it.",
+                "Touch ID before a saved password is filled, in Settings › Passwords.",
+                "Unread counts on pinned tabs, and every site's camera, microphone, location and notification choice listed in Settings › Privacy.",
+                "Keys of your own for the next and previous space and for each profile, in Settings › Keyboard & Mouse › Shortcuts.",
+                "Hide back, forward, reload and the buttons under the sidebar, one by one, in Settings › Appearance.",
+                "Safari extensions that came inside your apps, in Settings › Extensions, off until you turn it on.",
+            ],
+            better: [
+                "uBlock Origin Lite blocks from the first second after launch.",
+                "Extensions from the Chrome Web Store get the update a new install would, and a failed check is tried again within the hour.",
+                "Saved passwords are offered in more sign-in pages, and filled more safely.",
+                "Escape in the window's full screen goes to the page, as in Safari.",
+                "With Float the video when you switch apps, the video waits until the window is out of sight.",
+                "Continue Anyway trusts only the certificate you saw.",
+                "Extension managers see your installed extensions (chrome.management).",
+            ],
+            fixed: [
+                "uBlock Origin's popup, Readwise Highlighter, Raindrop.io's sign-in, Zotero Connector and Claude's side panel.",
+                "A sideways swipe in Google Sheets, or a fast scroll, going back a page.",
+                "Two rows of window buttons in split screen, and the full-screen bar taller than Safari's.",
+                "A video left in full screen coming back white, and YouTube opening as a download.",
+                "The Liquid Glass tab hard to see in light mode, and the side panel's white flash.",
+                "A beachball in a window full of tabs when the address field took the keyboard.",
+                "Enhancer for YouTube's buttons showing four times, and the extensions list closing at once in the screen's corner.",
+                "Picture in picture's return button across spaces, a narrowed sidebar's rows, and a tab's renamed title sticking.",
+            ]
+        ),
         Notes(
             version: "1.0.18", date: "22 November 2026",
             headline: "Sync on from the start, news by email, and your fixes.",
