@@ -18,8 +18,8 @@ enum Theme {
     /// call from wherever it draws; written on the main thread only.
     nonisolated(unsafe) private static var now: [String: Shade] = [:]
     nonisolated(unsafe) private static var flags: [String: Bool] = [:]
-    private static var base: [String: Any] = [:]
-    private static var spaces: [String: [String: Any]] = [:]
+    private(set) static var base: [String: Any] = [:]
+    private(set) static var spaces: [String: [String: Any]] = [:]
     private static var space: String?
     private static var read: Date?
     private static var watch: DispatchSourceFileSystemObject?
@@ -104,6 +104,13 @@ enum Theme {
         following[ObjectIdentifier(browser)] = browser.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { _ in MainActor.assumeIsolated { sync() } }
+    }
+
+    /// The file was written from Settings (ThemeColours.swift): read it and
+    /// paint, without waiting for the watcher.
+    static func edited() {
+        if watch == nil { start() } else { load() }
+        repaint()
     }
 
     private static func changed() {

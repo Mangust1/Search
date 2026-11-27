@@ -1938,8 +1938,13 @@ private struct PinSquare: View, Equatable {
 
     /// The square's grey, as `background` paints it: the unread badge's ring.
     private var squareGround: Color {
-        live ? greys.pinLive : selected ? greys.wash : hovering ? greys.hover : greys.tile
+        live ? greys.pinLive : selected ? greys.wash : hovering ? greys.hover : pinGround
     }
+
+    /// Themes (fork): a pin's square at rest has a key of its own, "pin".
+    /// It was the split box's "tile", and a theme that left that box clear
+    /// left dark logos on a dark column with nothing behind them.
+    private var pinGround: Color { Theme.own("pin") ?? greys.tile }
 
     /// The pin's letter: full ink with High contrast text, otherwise the
     /// ground's soft grey (see Door) until the square is live or under the
@@ -1985,7 +1990,7 @@ private struct PinSquare: View, Equatable {
                 } else {
                     RoundedRectangle(cornerRadius: scale * 9 / 34, style: .continuous)
                         .fill(selected ? greys.wash :
-                              hovering ? greys.hover : greys.tile)
+                              hovering ? greys.hover : pinGround)
                 }
             }
             .animation(Motion.quick, value: live)

@@ -610,6 +610,7 @@ struct SettingsPanel: View {
             Pictures(options: Look.allCases.map { look in
                 (look, look == .system ? "Auto" : look.title, AnyView(LookPicture(look: look)))
             }, selection: $prefs.look)
+        case "theme.colours": ThemeColours()
         case "pages.dusk": Switch(on: $prefs.darkensPages)
         case "inspector.chrome": Switch(on: $prefs.inspectorChrome)
         case "inspector.dark": Switch(on: $prefs.inspectorDark)

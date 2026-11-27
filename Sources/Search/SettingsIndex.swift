@@ -67,6 +67,7 @@ enum SettingsIndex {
         .init(id: "window", page: .appearance, title: "Window", icon: "macwindow"),
         .init(id: "tablook", page: .appearance, title: "Tabs", icon: "textformat.size"),
         .init(id: "motion", page: .appearance, title: "Motion", icon: "wind"),
+        .init(id: "colours", page: .appearance, title: "Colours", icon: "paintpalette"),
 
         .init(id: "themes", page: .themes, title: "Home background", icon: "photo.artframe"),
 
@@ -159,6 +160,14 @@ enum SettingsIndex {
               title: "Open Downloads", detail: "From its button, ⇧⌘J and History › Downloads",
               more: "In a tab, as the side panel's card floating by the downloads button, or in the side panel beside the page.",
               keys: ["downloads.open"], words: ["downloads window", "popover", "side panel"]),
+
+        // Themes (fork): theme.json's palette, edited in Settings
+        .init(id: "theme.colours", group: "colours", icon: "paintpalette",
+              title: "The window's colours", detail: "Everywhere, or one space's own over that",
+              more: "Kept in theme.json in Search's folder (see THEME.md). A colour chosen here is on the window at once; Reset gives the key back to the palette under it.",
+              keys: [],
+              words: ["theme", "palette", "gruvbox", "accent", "background", "pins", "tile", "colour", "color", "ink", "frame"],
+              kind: .wide),
 
         // Themes
         .init(id: "home.theme", group: "themes", icon: "photo.artframe",
