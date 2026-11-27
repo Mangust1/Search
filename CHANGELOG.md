@@ -11,6 +11,14 @@ in [ROADMAP.md](ROADMAP.md).
 
 ## Unreleased
 
+### Held back
+
+Not in this version, kept on main for a later one:
+
+- AI on pages, off unless you turn it on in Settings › AI: Summarize Page and Ask About This Page… in the View menu, answered where you choose — a model downloaded to this Mac (Apple Silicon: Qwen3 1.7B, 1.1 GB, checked before every use and run by a small program of Search's own that can't reach the network or your files), Ollama or LM Studio on this Mac, your own key for Anthropic, OpenAI, Google Gemini or OpenRouter, or signing in with your OpenRouter account. The answer comes in a panel beside the page, in plain text, marked as possibly wrong and with where it ran; follow-up questions stay in the panel, and nothing is kept once it closes. Only the page's visible text goes, never a password, a form or another tab; the page's words are given to the model as something to read, not orders, and any web address, email or phone number in the answer that isn't on the page is pointed out. Keys stay in this Mac's keychain and go only to their provider; a provider off this Mac is shown what it will be sent before the first request, and a private tab uses only what runs on this Mac.
+
+## 1.0.21 — 25 November 2026
+
 ### Added
 
 - Settings › Keyboard & Mouse › Backspace goes back, off unless turned on: ⌫ goes back a page and ⇧⌫ forward, as older browsers did, only when you aren't typing in a field or editable text and with no other key held. Pages already open follow the switch at once. Found by searching Settings for "backspace". `python3 Tests/backspace_back.py` (idea 1120)
@@ -19,6 +27,7 @@ in [ROADMAP.md](ROADMAP.md).
 
 ### Fixed
 
+- The floating video's return arrow brings back the window the video came from, with its tab in front (in its space, if it had been left), and no other. It brought forward the app's first window, whichever it was: another browser window, another profile's, or one already closed, which looked like a new window opening. With the tab gone, the little window just closes. `python3 Tests/float_return.py` (idea 1177)
 - An extension's connection to its app on the Mac (1Password's to its desktop app) that closes now says why in Search's log: an extension's pages share one process with its worker, so a page that crashes takes the worker's port down and its app helper is stopped within milliseconds, which left only "connection closed" in the app's log. The log now names the extension's process ending and its reason, who closed the port (the extension, a new worker, a port gone unannounced), and how long after the helper started in hundredths of a second; a helper's message that isn't JSON or is over 1 MB, and a message that couldn't be sent, are said too. `log show --predicate 'subsystem == "com.officecommun.search" AND category == "ExtensionNative"' --last 1h`. `python3 Tests/native_port_page_crash.py` (reported on X, idea 797)
 - Saved passwords and Apple Passwords come under the boxes of a sign-in that marks every box autocomplete="new-password" to turn password managers off, as an airline crew portal does (an app framework's form, no form tag, a "Crew ID" placeholder): it was taken for a sign-up and offered nothing under either box. A box for a name that says new-password now counts as no hint, and so does the one password box after it; a real sign-up, which gives its name box its own hint or asks for the password twice, still gets nothing. `swift test --filter FormFieldCorpusTests` (reported on X, idea 1169)
 - A tab that slept wakes where you were in a page that scrolls inside itself, as Google Docs, Sheets and most web apps do: a long document came back at its top, since only the window's own scroll came back with the tab. The page's largest scrolled part leaves its place as the tab falls asleep and is put back there as it wakes, once the app has drawn it; only on the same address, and never once you have scrolled, clicked or typed, or the page has moved it itself. `python3 Tests/sleep_inner_scroll.py` (reported by email, idea 1149)
@@ -48,12 +57,6 @@ in [ROADMAP.md](ROADMAP.md).
 - Liquid Glass tab: the glass follows the tab you're on again when the column scrolls. Once the rows grew past the column mid-glide, the glass stayed where it was in the window and tabs scrolled under it. ([#1514](https://github.com/driceroland/Search/issues/1514)) Thanks [@gxlactuss](https://github.com/gxlactuss) ([#1520](https://github.com/driceroland/Search/pull/1520))
 - Closing several tabs across the top one after another: the tabs left keep their width for half a second after each close, so the next tab's cross comes to where the last one was and can be clicked again without moving the pointer. They grow to fill the row once the closing stops, where before they grew after every close and the cross moved away each time Thanks [@gxlactuss](https://github.com/gxlactuss) ([#1512](https://github.com/driceroland/Search/pull/1512))
 - With Settings › Appearance › Window › Glass on, Liquid above all and with Transparency turned up, the buttons beside the tabs (Extensions and the list, Bookmarks, Back, Forward, Reload, the spaces' buttons) and a tab's letter no longer fade into whatever is behind the window. They rested in one opaque mid grey, which a mid-grey wallpaper or window behind the glass matched exactly; High contrast text brought the letters back but not the buttons. They now rest in the ground's own grey, black or white let through, as the tab titles beside them already do, so they always stand off what lies under them, and on a space's colour they take its tint as the titles do. On the plain ground the buttons are the grey they were. `swift test --filter RestingInkTests` Thanks [@carpaaaaa](https://github.com/carpaaaaa) ([#1509](https://github.com/driceroland/Search/pull/1509))
-
-### Held back
-
-Not in this version, kept on main for a later one:
-
-- AI on pages, off unless you turn it on in Settings › AI: Summarize Page and Ask About This Page… in the View menu, answered where you choose — a model downloaded to this Mac (Apple Silicon: Qwen3 1.7B, 1.1 GB, checked before every use and run by a small program of Search's own that can't reach the network or your files), Ollama or LM Studio on this Mac, your own key for Anthropic, OpenAI, Google Gemini or OpenRouter, or signing in with your OpenRouter account. The answer comes in a panel beside the page, in plain text, marked as possibly wrong and with where it ran; follow-up questions stay in the panel, and nothing is kept once it closes. Only the page's visible text goes, never a password, a form or another tab; the page's words are given to the model as something to read, not orders, and any web address, email or phone number in the answer that isn't on the page is pointed out. Keys stay in this Mac's keychain and go only to their provider; a provider off this Mac is shown what it will be sent before the first request, and a private tab uses only what runs on this Mac.
 
 ## 1.0.20 — 24 November 2026
 
