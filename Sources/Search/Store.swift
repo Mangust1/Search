@@ -22,9 +22,22 @@ enum Store {
     /// is used as a browser, takes links from other apps, comes forward,
     /// asks and notifies as the installed one does.
     static var apart: Bool {
+        if owned { return true }
         if ProcessInfo.processInfo.environment["SEARCH_PROBE"] != nil { return true }
         return Bundle.main.executablePath?.contains("/.build/") == true
     }
+
+    /// Fork: a build with an identifier of its own (SEARCH_IDENT in build.sh,
+    /// which writes SearchWorld into its Info.plist) is the fork's world
+    /// whatever it is started with. Left to SEARCH_PROBE alone, the binary
+    /// run without it wrote into the installed Search's data, and run with
+    /// another value it was a test run, every test command open, that could
+    /// name the fork's own cookie stores (audit 2026-11-27).
+    static let owned: Bool = {
+        let id = Bundle.main.bundleIdentifier ?? ""
+        return !id.isEmpty && id != "com.officecommun.search"
+            && Bundle.main.object(forInfoDictionaryKey: "SearchWorld") as? String == "fork"
+    }()
 
     /// Which test world a test run lives in. SEARCH_PROBE=1, or a run from
     /// the build folder, is the test world, "Search (test)". SEARCH_PROBE=
@@ -33,6 +46,7 @@ enum Store {
     /// measurement that needs a browser nobody has installed anything in,
     /// never borrow each other's. Nil for the browser somebody is using.
     static let world: String? = {
+        if owned { return "fork" }
         guard apart else { return nil }
         let asked = (ProcessInfo.processInfo.environment["SEARCH_PROBE"] ?? "").lowercased()
             .filter { ($0.isASCII && ($0.isLetter || $0.isNumber)) || $0 == "-" }
@@ -55,7 +69,9 @@ enum Store {
     /// between probes the way the real one does. Wiping the test store is
     /// then as safe as wiping its folder.
     static var websites: WKWebsiteDataStore {
-        guard apart, !ownContainer else { return .default() }
+        // The fork's own build keeps its stores by identifier, as before it
+        // had an identifier of its own: they can be carried over by folder.
+        guard apart, owned || !ownContainer else { return .default() }
         return WKWebsiteDataStore(forIdentifier: probeStore(1))
     }
 

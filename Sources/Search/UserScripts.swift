@@ -24,36 +24,62 @@ enum UserScripts {
 
     static var folder: URL { Store.file("userscripts") }
 
-    private static var kept: [String: (stamp: Date, meta: Script, script: WKUserScript)] = [:]
+    private static var kept: [String: (stamp: Date, meta: Script)] = [:]
 
-    /// The scripts for a page in `space` (nil with spaces off: only the
-    /// scripts for every space). Each tests the address itself, in the
-    /// page, so a frame and a page that changes address without loading
-    /// are judged by where they are.
-    static func scripts(space: String?) -> [WKUserScript] {
+    /// The scripts for the page at `url` in `space` (nil with spaces off:
+    /// only the scripts for every space).
+    ///
+    /// Matched here, in the app, and only a script the address is for goes
+    /// to the page at all (audit 2026-11-27): matched in the page, with the
+    /// page's own Array and RegExp, any site could read every script's text
+    /// off the wrapper's caller, and make it run on itself.
+    /// ponytail: the main frame only, judged by the address the load is for.
+    /// A script for a frame's address, or for an address a page reaches
+    /// without loading, does not run; a checker in Search's own world that
+    /// asks the app to run the body in that frame, when one is needed.
+    static func scripts(space: String?, url: URL?) -> [WKUserScript] {
+        guard let url, let origin = origin(of: url) else { kept = [:]; return [] }
+        let address = url.absoluteString
         let files = ((try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.contentModificationDateKey])) ?? [])
             .filter { $0.pathExtension == "js" }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        var live: [String: (stamp: Date, meta: Script, script: WKUserScript)] = [:]
+        var live: [String: (stamp: Date, meta: Script)] = [:]
         var out: [WKUserScript] = []
         for file in files {
             guard let stamp = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate else { continue }
             var entry = kept[file.path]
             if entry?.stamp != stamp {
                 guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
-                let meta = parse(text, file: file.lastPathComponent)
-                // The page's own world: what "@grant none" means, and where
-                // a script changing the page's own objects has to be.
-                let script = WKUserScript(source: wrap(meta), injectionTime: meta.atStart ? .atDocumentStart : .atDocumentEnd,
-                                          forMainFrameOnly: meta.mainFrameOnly, in: .page)
-                entry = (stamp, meta, script)
+                entry = (stamp, parse(text, file: file.lastPathComponent))
             }
             guard let entry else { continue }
             live[file.path] = entry
-            if entry.meta.spaces.isEmpty || space.map(entry.meta.spaces.contains) == true { out.append(entry.script) }
+            let meta = entry.meta
+            guard meta.spaces.isEmpty || space.map(meta.spaces.contains) == true, takes(meta, address) else { continue }
+            // The page's own world: what "@grant none" means, and where
+            // a script changing the page's own objects has to be.
+            out.append(WKUserScript(source: wrap(meta, origin: origin), injectionTime: meta.atStart ? .atDocumentStart : .atDocumentEnd,
+                                    forMainFrameOnly: true, in: .page))
         }
         kept = live
         return out
+    }
+
+    /// Whether `script` is for `address`: one of its matches, none of its excludes.
+    static func takes(_ script: Script, _ address: String) -> Bool {
+        func hit(_ source: String) -> Bool {
+            guard let test = try? NSRegularExpression(pattern: source) else { return false }
+            return test.firstMatch(in: address, range: NSRange(address.startIndex..., in: address)) != nil
+        }
+        return script.matches.contains(where: hit) && !script.excludes.contains(where: hit)
+    }
+
+    /// scheme://host[:port], as the page's location.origin says it; nil for
+    /// an address that has none (about:, data:, file:).
+    static func origin(of url: URL) -> String? {
+        guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
+              let host = url.host(percentEncoded: true)?.lowercased(), !host.isEmpty else { return nil }
+        return "\(scheme)://\(host)" + (url.port.map { ":\($0)" } ?? "")
     }
 
     /// The header between ==UserScript== and ==/UserScript==.
@@ -114,13 +140,16 @@ enum UserScripts {
             .map { NSRegularExpression.escapedPattern(for: String($0)) }.joined(separator: ".*")
     }
 
-    /// The script inside a function that leaves at once on any other page,
-    /// with the few GM_ names most scripts ask for.
+    /// The script inside a function that leaves at once on any other site,
+    /// with the few GM_ names most scripts ask for. The check is for a load
+    /// that was sent on to another site after the script was chosen for it:
+    /// location.origin and a comparison only, nothing of the page's that a
+    /// page can have changed, so nothing there can ask who called it.
     /// ponytail: values are kept in the page's localStorage, so per site and
     /// readable by the site; GM_xmlhttpRequest is the page's own fetch, so
     /// no reaching another site. Its own store and a native request when a
     /// script needs them.
-    static func wrap(_ script: Script) -> String {
+    static func wrap(_ script: Script, origin: String) -> String {
         func list(_ sources: [String]) -> String {
             let data = (try? JSONSerialization.data(withJSONObject: sources)) ?? Data("[]".utf8)
             return String(decoding: data, as: UTF8.self)
@@ -128,8 +157,7 @@ enum UserScripts {
         let name = list([script.name])
         return """
         (function () {
-          var here = location.href, is = function (s) { return new RegExp(s).test(here); };
-          if (!\(list(script.matches)).some(is) || \(list(script.excludes)).some(is)) return;
+          if (location.origin !== \(list([origin]))[0]) return;
           var unsafeWindow = window, key = "userscript:" + \(name)[0] + ":";
           var GM_info = { script: { name: \(name)[0] }, scriptHandler: "Search" };
           var GM_addStyle = function (css) { var s = document.createElement("style"); s.textContent = css; (document.head || document.documentElement).appendChild(s); return s; };

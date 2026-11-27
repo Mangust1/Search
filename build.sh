@@ -59,6 +59,10 @@ case "$ARCH" in
 esac
 APP="$OUT/Search.app"
 NAME="Search"
+# Fork: an identifier of its own for the build (see Store.owned), so it can
+# sit in /Applications beside the Search that is installed. Letters, digits,
+# dots and hyphens only.
+BUNDLE_ID="$(printf %s "${SEARCH_IDENT:-com.officecommun.search}" | tr -cd 'A-Za-z0-9.-')"
 # Asked for with SEARCH_DEV=1, a dev build, on a yellow plate and named for
 # the feature it's built from: "Search-split-view" in the menu bar, the Dock
 # and ⌘Tab, so it's never taken for the installed app beside it, or for the
@@ -91,6 +95,8 @@ if [ "$DEV" = 1 ]; then
     *) SHOWN="$NAME-$FEATURE" ;;
   esac
 fi
+# Fork: the name it goes by, when it has one of its own (SEARCH_SHOWN=Haku).
+[ -n "${SEARCH_SHOWN:-}" ] && SHOWN="$(printf '%s' "$SEARCH_SHOWN" | tr -cd 'A-Za-z0-9._ -')"
 VERSION="$(tr -d '[:space:]' < VERSION)"
 # A build number that only ever goes up, so the updater can tell newer from
 # older without parsing version strings.
@@ -269,7 +275,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleName</key><string>$NAME</string>
   <key>CFBundleDisplayName</key><string>$NAME</string>
   <key>CFBundleExecutable</key><string>$NAME</string>
-  <key>CFBundleIdentifier</key><string>com.officecommun.search</string>
+  <key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$BUILD</string>
@@ -385,6 +391,11 @@ if [ "$DEV" = 1 ]; then
   # lives in its own world too (see Store.world), never in the data of the
   # Search that is installed.
   /usr/libexec/PlistBuddy -c "Add :LSEnvironment dict" -c "Add :LSEnvironment:SEARCH_PROBE string fork" "$APP/Contents/Info.plist"
+  # Fork: with an identifier of its own (SEARCH_IDENT), the build is the
+  # fork's world by what it is, not by how it is started (see Store.owned).
+  if [ "$BUNDLE_ID" != "com.officecommun.search" ]; then
+    /usr/libexec/PlistBuddy -c "Add :SearchWorld string fork" "$APP/Contents/Info.plist"
+  fi
 fi
 
 # Signing. A Developer ID certificate, when there is one, with the hardened
@@ -448,7 +459,14 @@ else
   # before its app will unlock the extension (Settings › Browser › Add Browser).
   LOCAL="$(security find-identity -v -p codesigning 2>/dev/null \
     | grep -o '"Apple Development: [^"]*"' | head -1 | tr -d '"' || true)"
-  codesign --force --deep --sign "${LOCAL:--}" "$APP"
+  # Fork: with that certificate the hardened runtime goes on too (no code
+  # injection, no unsigned libraries loaded into the browser), with the same
+  # entitlements a shipped build has. Ad-hoc stays plain, as upstream has it.
+  if [ -n "$LOCAL" ]; then
+    codesign --force --deep --options runtime --entitlements "$ENTITLEMENTS" --sign "$LOCAL" "$APP"
+  else
+    codesign --force --deep --sign - "$APP"
+  fi
   [ "$STEP" != "app" ] && echo "no Developer ID certificate found — the DMG will only open on this Mac" >&2
 fi
 

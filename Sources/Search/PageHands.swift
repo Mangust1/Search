@@ -569,6 +569,11 @@ struct SwitchMark {
         var asked = query
         asked[kSecReturnAttributes as String] = true
         let status = SecItemCopyMatching(asked as CFDictionary, nil)
+        // Fork: its build has no access group, so there is nowhere to keep
+        // a mark, and "as it always was" meant any program could turn the
+        // bench or the agents' socket on with one `defaults write`. There
+        // the switches stay off (audit 2026-11-27).
+        if Store.world == "fork" { return status == errSecSuccess }
         return status == errSecSuccess || status == errSecMissingEntitlement
     }
 

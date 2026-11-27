@@ -3141,7 +3141,10 @@ final class Browser: NSObject, ObservableObject {
             welcoming = !prefs.welcomed
             newsShowing = WhatsNew.due(prefs: prefs, welcoming: welcoming)
             // Once a day, quietly: is there a newer one?
-            Updater.shared.checkIfDue { [weak self] line in self?.announce(line) }
+            // Fork: not at all. It is updated from the source, at upstream's
+            // tagged releases; the feed's builds are for another signature,
+            // and were fetched and refused again every hour.
+            if Store.world != "fork" { Updater.shared.checkIfDue { [weak self] line in self?.announce(line) } }
             // With your other Macs, if that is on (see Sync.swift).
             Sync.shared.start()
             // With iCloud, if that is on instead (see ICloudSync.swift).

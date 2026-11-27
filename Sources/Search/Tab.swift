@@ -1332,8 +1332,9 @@ final class Tab: ObservableObject, Identifiable {
             add(SiteStyles.script(style), .atDocumentStart, mainFrameOnly: true, in: Web.world)
         }
         // Userscripts (fork): yours, for the space this tab is in (see
-        // UserScripts.swift). Each leaves at once on a page it isn't for.
-        scripts += UserScripts.scripts(space: (delegate as? Browser)?.spaceName(holding: self))
+        // UserScripts.swift): only those the address is for, never in a
+        // private tab's page.
+        if !shy { scripts += UserScripts.scripts(space: (delegate as? Browser)?.spaceName(holding: self), url: url ?? pageAddress) }
         // A woken page's sessionStorage, back before its scripts (KeptSession).
         if let kept = KeptSession.script(for: self) {
             add(kept, .atDocumentStart, mainFrameOnly: true, in: Web.world)

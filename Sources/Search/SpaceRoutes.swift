@@ -127,6 +127,12 @@ enum SpaceRoutes {
 
     @MainActor static func space(forOutside url: URL) -> Space? {
         let prefs = Shared.prefs
+        // Routes file (fork): a link from another app goes by its texts too,
+        // before the sites. Upstream's #1484 gave these links a path of
+        // their own, past the file, and a work link from Slack opened in
+        // whichever space was in front (audit 2026-11-27).
+        if prefs.usesSpaces, site(of: url) != nil, let name = TextRoutes.space(for: url.absoluteString),
+           let space = Spaces.known.values.first(where: { $0.name == name }) { return space }
         return space(forOutside: url, routes: prefs.spaceRoutes, other: prefs.spaceForOtherLinks,
                      on: prefs.usesSpaces && prefs.sendsLinksToSpaces, spaces: Spaces.known)
     }

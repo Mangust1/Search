@@ -50,7 +50,28 @@ final class UserScriptsTests: XCTestCase {
         XCTAssertEqual(script.spaces, ["Media", "Work"])
         XCTAssertTrue(script.atStart)
         XCTAssertTrue(script.mainFrameOnly)
-        XCTAssertTrue(UserScripts.wrap(script).contains("document.title"))
+        XCTAssertTrue(UserScripts.wrap(script, origin: "https://example.com").contains("document.title"))
+    }
+
+    /// Matched in the app: a script goes only to the address it is for, and
+    /// its wrapper asks nothing of the page but its origin (audit 2026-11-27).
+    func testAScriptIsOnlyForItsOwnAddresses() {
+        let script = UserScripts.parse("""
+        // ==UserScript==
+        // @match https://console.example.com/*
+        // @exclude https://console.example.com/public/*
+        // ==/UserScript==
+        secret();
+        """)
+        XCTAssertTrue(UserScripts.takes(script, "https://console.example.com/ec2"))
+        XCTAssertFalse(UserScripts.takes(script, "https://console.example.com/public/x"))
+        XCTAssertFalse(UserScripts.takes(script, "https://evil.example/?https://console.example.com/ec2"))
+        XCTAssertEqual(UserScripts.origin(of: URL(string: "https://Console.Example.com:8443/a?b#c")!), "https://console.example.com:8443")
+        XCTAssertNil(UserScripts.origin(of: URL(string: "file:///tmp/a.html")!))
+        let wrapped = UserScripts.wrap(script, origin: "https://console.example.com")
+        XCTAssertTrue(wrapped.contains(#"if (location.origin !== ["https:\/\/console.example.com"][0]) return;"#))
+        XCTAssertFalse(wrapped.contains("RegExp"))
+        XCTAssertFalse(wrapped.contains(".some("))
     }
 
     func testTextRoutesTakeTheLongestTextInTheAddress() {
